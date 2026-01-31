@@ -196,7 +196,7 @@ export default function Home() {
             if (!chatId) {
                 // Create new chat on first message
                 const response = await fetch(
-                    `${API_URL}/api/v1/chat/chats`,
+                    `${API_URL}/api/v1/chat`,
                     {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
