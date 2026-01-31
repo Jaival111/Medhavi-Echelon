@@ -330,7 +330,16 @@ async def add_message(
             )
             
             assistant_message = completion.choices[0].message
-            
+
+            # Fetch the chat object to get existing messages
+            try:
+                chat_uuid = uuid.UUID(chat_id)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid chat_id format")
+            chat = await chat_crud.get_chat_by_id(db, chat_uuid, user.id)
+            if not chat:
+                raise HTTPException(status_code=404, detail="Chat not found")
+
             # Store only the new user message and assistant response
             # (assuming existing messages are already in DB)
             existing_message_count = len(chat.messages)

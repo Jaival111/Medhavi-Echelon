@@ -126,6 +126,7 @@ class IntentLayer:
             }
         
         # Run through the handler
+        print("Content: ", content)
         result = self.handle(content)
         
         # Extract and return the analysis
