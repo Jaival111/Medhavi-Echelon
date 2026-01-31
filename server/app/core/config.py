@@ -14,6 +14,8 @@ SECRET = config.get("SECRET")
 MAX_LIMIT = config.get("MAX_LIMIT", 100)
 ORIGINS = config.get("ORIGINS").split(',')
 COLLECTION_NAME = config.get("COLLECTION_NAME", "default")
+COOKIE_SECURE = str(config.get("COOKIE_SECURE", "false")).lower() == "true"
+COOKIE_SAMESITE = config.get("COOKIE_SAMESITE", "lax")
 
 engine = create_async_engine(DATABASE_URL)
 

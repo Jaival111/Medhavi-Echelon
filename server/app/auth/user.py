@@ -7,7 +7,7 @@ from fastapi_users.db import SQLAlchemyUserDatabase
 
 from app.models.UserModel import User
 from app.core.database.user import get_user_db
-from app.core.config import SECRET
+from app.core.config import SECRET, COOKIE_SECURE, COOKIE_SAMESITE
 from app.core.two_factor.otp_utils import get_otp
 from app.core.email import email
 
@@ -30,9 +30,9 @@ async def get_user_manager(user_db: SQLAlchemyUserDatabase = Depends(get_user_db
 cookie_transport = CookieTransport(
         cookie_name="user_cookie",
         cookie_max_age=3600,  # 1 hour
-        cookie_secure=True,
+        cookie_secure=COOKIE_SECURE,
         cookie_httponly=True,
-        cookie_samesite="none",
+        cookie_samesite=COOKIE_SAMESITE,
     )
 
 def get_jwt_strategy() -> JWTStrategy:

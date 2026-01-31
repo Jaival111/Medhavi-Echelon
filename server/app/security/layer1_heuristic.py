@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import sys
 import csv
-csv.field_size_limit(sys.maxsize)
+# Fix for Windows: use a smaller but still large enough limit
+try:
+    csv.field_size_limit(sys.maxsize)
+except OverflowError:
+    # Windows limitation: use maximum safe value for 32-bit signed integer
+    csv.field_size_limit(int(2**31 - 1))
 import re
 from threading import Lock
 from pathlib import Path

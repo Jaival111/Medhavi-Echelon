@@ -87,7 +87,7 @@ async def stream_chat_response(
 @router.post("/", response_model=ChatResponse)
 async def converse(
     request: ChatRequest,
-    # user: User = Depends(current_active_user),
+    user: User = Depends(current_active_user),
     db: AsyncSession = Depends(get_async_session)
 ):
     """
@@ -96,9 +96,6 @@ async def converse(
     Supports both streaming and non-streaming responses.
     Includes multi-layer prompt injection detection.
     """
-    user = dict()
-
-    user["id"] = uuid.UUID("78d8dd0e-d404-4f82-97fb-f3b3cb82b61e") # Dummy user for testing
     if not GROQ_API_KEY:
         raise HTTPException(status_code=500, detail="Groq API key not configured")
     
@@ -109,7 +106,7 @@ async def converse(
         
         chat = await chat_crud.create_chat(
             db=db,
-            user_id=user["id"],
+            user_id=user.id,
             name=chat_name
         )
         
@@ -126,7 +123,7 @@ async def converse(
             
             # If prompt is unsafe, reject immediately and delete the chat
             if not security_result.safe:
-                await chat_crud.delete_chat(db, chat.id, user["id"])
+                await chat_crud.delete_chat(db, chat.id, user.id)
                 raise HTTPException(
                     status_code=400,
                     detail={
@@ -168,7 +165,7 @@ async def converse(
             )
             
             # Fetch the complete chat with messages
-            chat_with_messages = await chat_crud.get_chat_by_id(db, chat.id, user["id"])
+            chat_with_messages = await chat_crud.get_chat_by_id(db, chat.id, user.id)
             
             return ChatResponse.model_validate(chat_with_messages)
     
@@ -189,9 +186,6 @@ async def add_message(
     Supports both streaming and non-streaming responses.
     Includes multi-layer prompt injection detection.
     """
-    user = dict()
-
-    user["id"] = uuid.UUID("78d8dd0e-d404-4f82-97fb-f3b3cb82b61e") # Dummy user for testing
     if not GROQ_API_KEY:
         raise HTTPException(status_code=500, detail="Groq API key not configured")
     
@@ -261,7 +255,7 @@ async def add_message(
             )
             
             # Fetch the complete chat with messages
-            chat_with_messages = await chat_crud.get_chat_by_id(db, chat.id, user["id"])
+            chat_with_messages = await chat_crud.get_chat_by_id(db, chat.id, user.id)
             
             return ChatResponse.model_validate(chat_with_messages)
     
@@ -270,103 +264,6 @@ async def add_message(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chat completion failed: {str(e)}")
 
-@router.post("/{chat_id}", response_model=ChatResponse)
-async def add_message(
-    chat_id: str,
-    request: ChatRequest,
-    user: User = Depends(current_active_user),
-    db: AsyncSession = Depends(get_async_session)
-):
-    """
-    Add message to an existing chat conversation.
-    Supports both streaming and non-streaming responses.
-    Includes multi-layer prompt injection detection.
-    """
-    if not GROQ_API_KEY:
-        raise HTTPException(status_code=500, detail="Groq API key not configured")
-    
-    try:
-        # Extract user prompt from the last message for security check
-        user_messages = [msg for msg in request.messages if msg.role == "user"]
-        if user_messages and security_pipeline:
-            last_user_prompt = user_messages[-1].content
-            
-            # Run security check
-            security_result = await security_pipeline.check_prompt(last_user_prompt)
-            
-        #     # If prompt is unsafe, reject immediately
-        #     if not security_result.safe:
-        #         raise HTTPException(
-        #             status_code=400,
-        #             detail={
-        #                 "error": "Prompt rejected by security system",
-        #                 "reason": security_result.reason,
-        #                 "security_score": security_result.score,
-        #                 "breakdown": security_result.breakdown,
-        #             }
-        #         )
-        
-        # Convert messages to dict format for Groq API
-        messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
-        
-        if request.stream:
-            # Return streaming response
-            return StreamingResponse(
-                stream_chat_response(
-                    messages=messages,
-                    model=request.model,
-                    temperature=request.temperature,
-                    max_tokens=request.max_tokens
-                ),
-                media_type="text/event-stream"
-            )
-        else:
-            # Non-streaming response
-            completion = groq_client.chat.completions.create(
-                messages=messages,
-                model=request.model,
-                temperature=request.temperature,
-                max_tokens=request.max_tokens,
-            )
-            
-            assistant_message = completion.choices[0].message
-
-            # Fetch the chat object to get existing messages
-            try:
-                chat_uuid = uuid.UUID(chat_id)
-            except ValueError:
-                raise HTTPException(status_code=400, detail="Invalid chat_id format")
-            chat = await chat_crud.get_chat_by_id(db, chat_uuid, user.id)
-            if not chat:
-                raise HTTPException(status_code=404, detail="Chat not found")
-
-            # Store only the new user message and assistant response
-            # (assuming existing messages are already in DB)
-            existing_message_count = len(chat.messages)
-            new_messages = messages[existing_message_count:]
-            
-            messages_to_store = [
-                (msg["role"], msg["content"]) for msg in new_messages
-            ]
-            # Add assistant response
-            messages_to_store.append((assistant_message.role, assistant_message.content))
-            
-            if messages_to_store:
-                await chat_crud.add_messages_to_chat(
-                    db=db,
-                    chat_id=chat_uuid,
-                    messages=messages_to_store
-                )
-            
-            # Fetch the complete chat with messages
-            chat_with_messages = await chat_crud.get_chat_by_id(db, chat_uuid, user.id)
-            
-            return ChatResponse.model_validate(chat_with_messages)
-    
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Chat completion failed: {str(e)}")
 
 @router.get("/models")
 async def list_models():
