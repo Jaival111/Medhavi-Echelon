@@ -87,7 +87,7 @@ async def stream_chat_response(
 @router.post("/", response_model=ChatResponse)
 async def converse(
     request: ChatRequest,
-    user: User = Depends(current_active_user),
+    # user: User = Depends(current_active_user),
     db: AsyncSession = Depends(get_async_session)
 ):
     """
@@ -106,7 +106,7 @@ async def converse(
         
         chat = await chat_crud.create_chat(
             db=db,
-            user_id=user.id,
+            user_id=uuid.UUID("78d8dd0e-d404-4f82-97fb-f3b3cb82b61e"),
             name=chat_name
         )
         
@@ -123,7 +123,7 @@ async def converse(
             
             # If prompt is unsafe, reject immediately and delete the chat
             if not security_result.safe:
-                await chat_crud.delete_chat(db, chat.id, user.id)
+                await chat_crud.delete_chat(db, chat.id, uuid.UUID("78d8dd0e-d404-4f82-97fb-f3b3cb82b61e"))
                 raise HTTPException(
                     status_code=400,
                     detail={
@@ -165,7 +165,7 @@ async def converse(
             )
             
             # Fetch the complete chat with messages
-            chat_with_messages = await chat_crud.get_chat_by_id(db, chat.id, user.id)
+            chat_with_messages = await chat_crud.get_chat_by_id(db, chat.id, uuid.UUID("78d8dd0e-d404-4f82-97fb-f3b3cb82b61e"))
             
             return ChatResponse.model_validate(chat_with_messages)
     

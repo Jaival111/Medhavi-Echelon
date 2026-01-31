@@ -4,7 +4,7 @@ Main orchestrator for the multi-layer security detection system
 """
 import asyncio
 from typing import Optional, List, Dict
-from .layer0_intent_layer import ControlPlaneLayer
+from .layer0_control_plane import ControlPlaneLayer
 from .layer1_heuristic import HeuristicAnalyzer
 from .layer2_ml import MLClassifier
 from .layer3_canary import CanaryTokenTester
