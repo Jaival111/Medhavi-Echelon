@@ -68,3 +68,4 @@ class PatternCompiler:
 
         # Keep in [0,1] and round for CSV readability
         return round(max(0.0, min(1.0, score)), 6)
+
