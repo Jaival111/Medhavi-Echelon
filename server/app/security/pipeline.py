@@ -1,9 +1,10 @@
 """
 Prompt Security Pipeline
-Main orchestrator for the three-layer security detection system
+Main orchestrator for the multi-layer security detection system
 """
 import asyncio
-from typing import Optional
+from typing import Optional, List, Dict
+from .layer0_intent_layer import IntentLayer
 from .layer1_heuristic import HeuristicAnalyzer
 from .layer2_ml import MLClassifier
 from .layer3_canary import CanaryTokenTester
@@ -16,6 +17,7 @@ class PromptSecurityPipeline:
     Multi-layer prompt injection detection pipeline.
     
     Architecture:
+    0. Layer 0: Intent Analysis - VADER sentiment-based intent shift detection
     1. Layer 1: Heuristic Analysis - Pattern matching with weighted keywords
     2. Layer 2: ML Classification - DeBERTa-v3 transformer model
     3. Layer 3: Canary Token Testing - UUID token extraction test
@@ -26,10 +28,12 @@ class PromptSecurityPipeline:
         self,
         groq_api_key: str,
         ml_api_url: Optional[str] = None,
-        layer1_weight: float = 0.25,
-        layer2_weight: float = 0.35,
-        layer3_weight: float = 0.40,
+        layer0_weight: float = 0.15,
+        layer1_weight: float = 0.20,
+        layer2_weight: float = 0.30,
+        layer3_weight: float = 0.35,
         safety_threshold: float = 50.0,
+        enable_layer0: bool = False,
         enable_layer2: bool = True,
         enable_layer3: bool = True,
     ):
@@ -39,14 +43,20 @@ class PromptSecurityPipeline:
         Args:
             groq_api_key: Groq API key for canary token testing
             ml_api_url: Optional custom ML API URL
-            layer1_weight: Weight for heuristic layer (default: 25%)
-            layer2_weight: Weight for ML layer (default: 35%)
-            layer3_weight: Weight for canary layer (default: 40%)
+            layer0_weight: Weight for intent layer (default: 15%)
+            layer1_weight: Weight for heuristic layer (default: 20%)
+            layer2_weight: Weight for ML layer (default: 30%)
+            layer3_weight: Weight for canary layer (default: 35%)
             safety_threshold: Score threshold for rejection (default: 50.0)
+            enable_layer0: Enable intent analysis layer
             enable_layer2: Enable ML classification layer
             enable_layer3: Enable canary token testing layer
         """
         # Initialize layers
+        self.enable_layer0 = enable_layer0
+        if enable_layer0:
+            self.layer0 = IntentLayer()
+        
         self.layer1 = HeuristicAnalyzer()
         
         self.enable_layer2 = enable_layer2
@@ -61,24 +71,61 @@ class PromptSecurityPipeline:
         
         # Initialize scoring service
         self.scorer = ScoringService(
+            layer0_weight=layer0_weight,
             layer1_weight=layer1_weight,
             layer2_weight=layer2_weight,
             layer3_weight=layer3_weight,
             safety_threshold=safety_threshold,
         )
     
-    async def check_prompt(self, prompt: str) -> SecurityCheckResult:
+    async def check_prompt(
+        self, 
+        prompt: str = None, 
+        messages: List[Dict] = None,
+        session_id: str = "default_session"
+    ) -> SecurityCheckResult:
         """
-        Run full security check on a user prompt.
+        Run full security check on a user prompt or message history.
         
         Args:
-            prompt: User prompt to analyze
+            prompt: User prompt to analyze (legacy support)
+            messages: Full message history with role and content
+            session_id: Session identifier for intent tracking
             
         Returns:
             SecurityCheckResult with safety verdict and detailed breakdown
         """
+        # Use last user message as prompt if not provided
+        if prompt is None and messages:
+            user_messages = [msg.get("content", "") for msg in messages if msg.get("role") == "user"]
+            prompt = user_messages[-1] if user_messages else ""
+        elif prompt is None:
+            prompt = ""
+        
+        # Layer 0: Intent Analysis (synchronous, fast)
+        if self.enable_layer0:
+            layer0_analysis = self.layer0.analyze(
+                prompt=prompt,
+                messages=messages,
+                session_id=session_id
+            )
+            # Convert to LayerResult format
+            from .models import LayerResult
+            layer0_result = LayerResult(
+                score=100.0 if layer0_analysis.get("flagged", False) else 0.0,
+                normalized_score=100.0 if layer0_analysis.get("flagged", False) else 0.0,
+                passed=not layer0_analysis.get("flagged", False),
+                details=layer0_analysis
+            )
+        else:
+            layer0_result = self._create_fallback_result()
+        
+        print("Layer 0:", layer0_result)
+        
         # Layer 1: Heuristic Analysis (synchronous, fast)
         layer1_result = self.layer1.analyze(prompt)
+
+        print("Layer 1:", layer1_result)
         
         # Layers 2 & 3: Run in parallel for efficiency
         tasks = []
@@ -109,13 +156,19 @@ class PromptSecurityPipeline:
         else:
             layer2_result = self._create_fallback_result()
             layer3_result = self._create_fallback_result()
+
+        print("Layer 2:", layer2_result)
+        print("Layer 3:", layer3_result)
         
         # Compute final score and verdict
         final_result = self.scorer.compute_final_score(
+            layer0_result=layer0_result,
             layer1_result=layer1_result,
             layer2_result=layer2_result,
             layer3_result=layer3_result,
         )
+
+        print("Final:", final_result)
         
         return final_result
     
@@ -143,12 +196,14 @@ class PromptSecurityPipeline:
         layer1_result = self.layer1.analyze(prompt)
         
         # Create neutral results for other layers
+        layer0_result = self._create_fallback_result()
         layer2_result = self._create_fallback_result()
         layer3_result = self._create_fallback_result()
         
         # Use adjusted weights for quick check (100% on layer 1)
         from .scoring import ScoringService
         quick_scorer = ScoringService(
+            layer0_weight=0.0,
             layer1_weight=1.0,
             layer2_weight=0.0,
             layer3_weight=0.0,
@@ -156,6 +211,7 @@ class PromptSecurityPipeline:
         )
         
         return quick_scorer.compute_final_score(
+            layer0_result=layer0_result,
             layer1_result=layer1_result,
             layer2_result=layer2_result,
             layer3_result=layer3_result,
