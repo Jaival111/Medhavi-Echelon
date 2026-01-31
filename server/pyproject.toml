@@ -9,5 +9,7 @@ dependencies = [
     "fastapi-mail>=1.6.1",
     "fastapi-users[sqlalchemy]>=15.0.3",
     "fastapi[standard]>=0.128.0",
+    "groq>=0.13.0",
     "psycopg2-binary>=2.9.11",
+    "httpx>=0.27.0",
 ]
