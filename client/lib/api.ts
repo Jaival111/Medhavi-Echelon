@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 const api = axios.create({
     baseURL: API_URL,
@@ -56,15 +56,32 @@ export const authAPI = {
         return response.data;
     },
 
-    // Send OTP for login
+    // Send OTP for login (uses auth login endpoint)
     sendLoginOTP: async (data: { email: string; password: string }) => {
-        const response = await api.post('/api/v1/2fa/login/send-otp', data);
+        const formData = new URLSearchParams();
+        formData.append('username', data.email);
+        formData.append('password', data.password);
+
+        const response = await api.post('/auth/jwt/login', formData, {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+        });
         return response.data;
     },
 
-    // Send OTP for signup
+    // Send OTP for signup (register first, then request login OTP)
     sendSignupOTP: async (data: { email: string; password: string }) => {
-        const response = await api.post('/api/v1/2fa/signup/send-otp', data);
+        await api.post('/auth/register', data);
+        const formData = new URLSearchParams();
+        formData.append('username', data.email);
+        formData.append('password', data.password);
+
+        const response = await api.post('/auth/jwt/login', formData, {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+        });
         return response.data;
     },
 
@@ -83,6 +100,54 @@ export const authAPI = {
     // Get current user
     getCurrentUser: async () => {
         const response = await api.get('/users/me');
+        return response.data;
+    },
+
+    // Get user chat history
+    getChatHistory: async () => {
+        const response = await api.get('/api/v1/chat/chats');
+        return response.data;
+    },
+
+    // Get a specific chat with messages
+    getChat: async (chatId: string) => {
+        const response = await api.get(`/api/v1/chats/${chatId}`);
+        return response.data;
+    },
+
+    // Add message to existing chat
+    addMessage: async (chatId: string, data: { messages: Array<{ role: string; content: string }>; stream?: boolean; model?: string; temperature?: number; max_tokens?: number }) => {
+        const response = await api.post(`/api/v1/chat/${chatId}`, data);
+        return response.data;
+    },
+
+    // Update chat (rename)
+    updateChat: async (chatId: string, name: string) => {
+        const response = await api.patch(`/api/v1/chats/${chatId}`, { name });
+        return response.data;
+    },
+
+    // Delete chat via API
+    deleteChatAPI: async (chatId: string) => {
+        const response = await api.delete(`/api/v1/chats/${chatId}`);
+        return response.data;
+    },
+
+    // Get chat messages only
+    getChatMessages: async (chatId: string) => {
+        const response = await api.get(`/api/v1/chats/${chatId}/messages`);
+        return response.data;
+    },
+
+    // List available models
+    listModels: async () => {
+        const response = await api.get('/api/v1/chat/models');
+        return response.data;
+    },
+
+    // Security check
+    securityCheck: async (prompt: string) => {
+        const response = await api.post('/api/v1/security-check', { prompt });
         return response.data;
     },
 };
