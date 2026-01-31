@@ -54,7 +54,7 @@ if GROQ_API_KEY:
         layer2_weight=0.30,  # 30% - ML Classification
         layer3_weight=0.35,  # 35% - Canary Token Testing
         safety_threshold=50.0,  # Reject if score >= 50
-        enable_layer0=False,  # Enable intent analysis
+        enable_layer0=True,  # Enable intent analysis
         enable_layer2=True,  # Enable ML classification
         enable_layer3=True,  # Enable canary token testing
     )

@@ -4,7 +4,7 @@ Main orchestrator for the multi-layer security detection system
 """
 import asyncio
 from typing import Optional, List, Dict
-from .layer0_intent_layer import IntentLayer
+from .layer0_intent_layer import ControlPlaneLayer
 from .layer1_heuristic import HeuristicAnalyzer
 from .layer2_ml import MLClassifier
 from .layer3_canary import CanaryTokenTester
@@ -17,7 +17,7 @@ class PromptSecurityPipeline:
     Multi-layer prompt injection detection pipeline.
     
     Architecture:
-    0. Layer 0: Intent Analysis - VADER sentiment-based intent shift detection
+    0. Layer 0: Control Plane Detection - Multi-turn prompt injection via control-plane changes
     1. Layer 1: Heuristic Analysis - Pattern matching with weighted keywords
     2. Layer 2: ML Classification - DeBERTa-v3 transformer model
     3. Layer 3: Canary Token Testing - UUID token extraction test
@@ -33,7 +33,7 @@ class PromptSecurityPipeline:
         layer2_weight: float = 0.30,
         layer3_weight: float = 0.35,
         safety_threshold: float = 50.0,
-        enable_layer0: bool = False,
+        enable_layer0: bool = True,
         enable_layer2: bool = True,
         enable_layer3: bool = True,
     ):
@@ -43,27 +43,25 @@ class PromptSecurityPipeline:
         Args:
             groq_api_key: Groq API key for canary token testing
             ml_api_url: Optional custom ML API URL
-            layer0_weight: Weight for intent layer (default: 15%)
+            layer0_weight: Weight for control plane layer (default: 15%)
             layer1_weight: Weight for heuristic layer (default: 20%)
             layer2_weight: Weight for ML layer (default: 30%)
             layer3_weight: Weight for canary layer (default: 35%)
             safety_threshold: Score threshold for rejection (default: 50.0)
-            enable_layer0: Enable intent analysis layer
+            enable_layer0: Enable control plane detection layer
             enable_layer2: Enable ML classification layer
             enable_layer3: Enable canary token testing layer
         """
         # Initialize layers
         self.enable_layer0 = enable_layer0
         if enable_layer0:
-            self.layer0 = IntentLayer()
+            self.layer0 = ControlPlaneLayer()
         
         self.layer1 = HeuristicAnalyzer()
         
         self.enable_layer2 = enable_layer2
         if enable_layer2:
-            self.layer2 = MLClassifier(
-                api_url=ml_api_url or "https://protectai-deberta-v3-base.hf.space/predict"
-            )
+            self.layer2 = MLClassifier()
         
         self.enable_layer3 = enable_layer3
         if enable_layer3:

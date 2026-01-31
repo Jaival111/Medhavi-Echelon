@@ -14,8 +14,8 @@ class ScoringService:
     
     def __init__(
         self,
-        layer0_weight: float = 0.15,  # 15% - Intent Analysis
-        layer1_weight: float = 0.20,  # 20% - Heuristic Analysis
+        layer0_weight: float = 0.25,  # 25% - Intent Analysis
+        layer1_weight: float = 0.10,  # 10% - Heuristic Analysis
         layer2_weight: float = 0.30,  # 30% - ML Classification
         layer3_weight: float = 0.35,  # 35% - Canary Token Testing
         safety_threshold: float = 50.0,  # Final score threshold
@@ -165,13 +165,6 @@ class ScoringService:
             return (
                 True,
                 "VETO: Canary token extraction detected - prompt injection confirmed"
-            )
-        
-        # Layer 1 veto: Very high heuristic score
-        if layer1_result.normalized_score >= self.layer1_veto_threshold:
-            return (
-                True,
-                f"VETO: High-confidence heuristic detection (score: {layer1_result.normalized_score:.1f})"
             )
         
         # Combined veto: Multiple layers indicate high risk
