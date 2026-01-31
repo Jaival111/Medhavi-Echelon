@@ -14,6 +14,8 @@ SECRET = config.get("SECRET")
 MAX_LIMIT = config.get("MAX_LIMIT", 100)
 ORIGINS = config.get("ORIGINS").split(',')
 COLLECTION_NAME = config.get("COLLECTION_NAME", "default")
+COOKIE_SECURE = str(config.get("COOKIE_SECURE", "false")).lower() == "true"
+COOKIE_SAMESITE = config.get("COOKIE_SAMESITE", "lax")
 
 engine = create_async_engine(DATABASE_URL)
 
@@ -46,46 +48,47 @@ email_conf =ConnectionConfig(
     USE_CREDENTIALS=USE_CREDENTIALS,
 )
 api_key = config.get("OPENAI_API_KEY")
+GROQ_API_KEY = config.get("GROQ_API_KEY")
 
 if COLLECTION_NAME == "":
     COLLECTION_NAME = "default"
 
-DATASET_DATABASE_URL = config.get("DATASET_DATABASE_URL")
+# DATASET_DATABASE_URL = config.get("DATASET_DATABASE_URL")
 
-dataset_engine = create_engine(DATASET_DATABASE_URL)
+# dataset_engine = create_engine(DATASET_DATABASE_URL)
 
-def get_database_engine():
-    return dataset_engine
+# def get_database_engine():
+#     return dataset_engine
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=dataset_engine)
+# SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=dataset_engine)
 
-def get_dataset_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# def get_dataset_db():
+    # db = SessionLocal()
+    # try:
+    #     yield db
+    # finally:
+    #     db.close()
 
-def initialize_tables_dataset():
-    """
-    Initialize the TABLE_SCHEMA meta table for storing schema analysis.
-    Creates the table if it does not exist.
-    """
-    conn = None
-    try:
-        conn = dataset_engine.connect()
-        conn.execute(text("""
-            CREATE TABLE IF NOT EXISTS TABLE_SCHEMA (
-                table_name TEXT PRIMARY KEY,
-                analysis JSONB,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """))
-        conn.commit()
-    except Exception as e:
-        print(f"Error during table initialization: {e}")
-        raise
-    finally:
-        if conn:
-            conn.close()
+# def initialize_tables_dataset():
+#     """
+#     Initialize the TABLE_SCHEMA meta table for storing schema analysis.
+#     Creates the table if it does not exist.
+#     """
+#     conn = None
+#     try:
+#         conn = dataset_engine.connect()
+#         conn.execute(text("""
+#             CREATE TABLE IF NOT EXISTS TABLE_SCHEMA (
+#                 table_name TEXT PRIMARY KEY,
+#                 analysis JSONB,
+#                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+#                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+#             )
+#         """))
+#         conn.commit()
+#     except Exception as e:
+#         print(f"Error during table initialization: {e}")
+#         raise
+#     finally:
+#         if conn:
+            # conn.close()

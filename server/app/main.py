@@ -5,12 +5,12 @@ from app.api.main import api_router
 from app.auth.router import auth_router
 from app.core.database.database import create_db_and_tables
 from app.core.config import ORIGINS
-from app.core.config import initialize_tables_dataset
+# from app.core.config import initialize_tables_dataset
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await create_db_and_tables()
-    initialize_tables_dataset()
+    # initialize_tables_dataset()
     yield
 
 app = FastAPI(title="R2R API Backend", version="1.0.0", lifespan=lifespan)
