@@ -1,5 +1,5 @@
 from __future__ import annotations
-from fastapi_users.db import SQLAlchemyBaseUserTableUUID
+from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTableUUID
 from sqlalchemy.orm import relationship, Mapped
 from typing import List, TYPE_CHECKING
 

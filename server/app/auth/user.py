@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi import Depends, Request, HTTPException
 from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin, models
 from fastapi_users.authentication import AuthenticationBackend, BearerTransport, JWTStrategy, CookieTransport, Strategy
-from fastapi_users.db import SQLAlchemyUserDatabase
+from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 
 from app.models.UserModel import User
 from app.core.database.user import get_user_db

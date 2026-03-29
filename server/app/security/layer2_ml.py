@@ -1,11 +1,12 @@
 """
 Layer 2: ML Classification
-Medhavi transformer model for binary prompt injection classification
+Prompt-injection transformer model for binary classification
 """
 import csv
 import sys
 import math
 from typing import List, Tuple, Optional
+import os
 
 import torch
 import torch.nn.functional as F
@@ -20,7 +21,7 @@ except ImportError:  # fallback if tqdm isn't installed
         return iterable if iterable is not None else []
 
 
-MODEL_NAME = "TheDeepDas/Medhavi"
+MODEL_NAME = os.getenv("LAYER2_MODEL_NAME", "TheDeepDas/prompt-injection-deberta")
 BATCH_SIZE = 16
 MAX_LENGTH = 512
 
@@ -29,7 +30,7 @@ csv.field_size_limit(min(sys.maxsize, 2147483647))
 
 class MLClassifier:
     """
-    Machine learning classifier using Medhavi model for prompt injection detection.
+    Machine learning classifier for prompt injection detection.
     Provides binary classification with risk scoring.
     """
     
@@ -122,7 +123,7 @@ class MLClassifier:
     
     async def classify(self, prompt: str) -> LayerResult:
         """
-        Classify a single prompt using the Medhavi model.
+        Classify a single prompt using the configured transformer model.
         
         Args:
             prompt: User prompt to classify
