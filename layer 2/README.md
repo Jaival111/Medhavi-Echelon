@@ -139,3 +139,82 @@ Current production Layer 2 in code is **not DeBERTa-v3-base**. It is:
 - `MODEL_NAME = os.getenv("LAYER2_MODEL_NAME", "TheDeepDas/prompt-injection-deberta")` in `server/app/security/layer2_ml.py`
 
 If you move to any config above, update model loading in Layer 2 and revalidate end-to-end scoring thresholds.
+
+## 9) Deeraj Config 4 Runbook (implemented)
+
+The repository now includes an end-to-end workflow for Deeraj's required Config 4 deliverables.
+
+### Files added for Config 4
+
+1. `data/download_and_prepare_xtram1.py`
+2. `layer 2/train_config4_llama_guard.py`
+3. `layer 2/eval_config4.py`
+4. `layer 2/requirements_config4.txt`
+5. `layer 2/results_config4.json`
+6. `layer 2/comparison_baseline.json`
+7. `layer 2/failure_analysis.txt`
+
+### Step A: Install dependencies
+
+```bash
+pip install -r "layer 2/requirements_config4.txt"
+```
+
+### Step B: Build the required shared dataset splits
+
+```bash
+python data/download_and_prepare_xtram1.py --output-dir data/processed --seed 42
+```
+
+Expected outputs:
+
+1. `data/processed/xtram1_train.csv`
+2. `data/processed/xtram1_val.csv`
+3. `data/processed/xtram1_test.csv`
+
+### Step C: Train Deeraj Config 4
+
+```bash
+python "layer 2/train_config4_llama_guard.py" \
+  --data-dir data/processed \
+  --model-name meta-llama/Llama-Guard-3-1B \
+  --seeds 42,43,44 \
+  --lora-ranks 8,16,32 \
+  --lora-alpha 32 \
+  --batch-size 8 \
+  --gradient-accumulation-steps 8 \
+  --epochs 3 \
+  --adapter-lr 1e-4 \
+  --head-lr 2e-5 \
+  --max-length 512
+```
+
+Optional 4-bit training:
+
+```bash
+python "layer 2/train_config4_llama_guard.py" --qlora
+```
+
+### Step D: Evaluate and compare against baseline encoder
+
+```bash
+python "layer 2/eval_config4.py" \
+  --results-json "layer 2/results_config4.json" \
+  --data-dir data/processed \
+  --baseline-model answerdotai/ModernBERT-large
+```
+
+### Assignment requirement mapping
+
+1. Memory and training-time profile:
+  - written per seed in `results_config4.json` as `peak_gpu_ram_gb` and `train_wall_time_minutes`
+2. LoRA rank/alpha and impact on metrics:
+  - written in `results_config4.json` as run config fields and `lora_rank_impact`
+3. Comparison against best encoder baseline:
+  - written in `comparison_baseline.json` from `eval_config4.py`
+
+### Submission artifacts
+
+1. `layer 2/results_config4.json`
+2. `layer 2/comparison_baseline.json`
+3. `layer 2/failure_analysis.txt`

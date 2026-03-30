@@ -1,0 +1,49 @@
+{
+  "owner": "Deeraj",
+  "config4_model": "meta-llama/Llama-Guard-3-1B",
+  "selected_best_run": "rank_8_alpha_32",
+  "selected_best_seed": "42",
+  "config4_best_seed_metrics": {
+    "test_f1_injection": 0.564430244941427,
+    "test_f1_macro": 0.5944281619564803,
+    "test_f1_micro": 0.596646942800789,
+    "test_pr_auc": 0.4149286338823991,
+    "test_fp_rate_safe": 0.5190947666195191,
+    "test_tp": 265,
+    "test_tn": 340,
+    "test_fp": 367,
+    "test_fn": 42,
+    "latency_ms_per_sample": 23.819070027613268,
+    "checkpoint_size_mb": 19.695112228393555,
+    "model_params_million": 1236.67456
+  },
+  "config4_aggregated_across_runs_and_seeds": {
+    "test_f1_injection": {
+      "mean": 0.564430244941427,
+      "std": 0.0
+    },
+    "test_f1_macro": {
+      "mean": 0.5944281619564803,
+      "std": 0.0
+    },
+    "test_f1_micro": {
+      "mean": 0.596646942800789,
+      "std": 0.0
+    },
+    "test_pr_auc": {
+      "mean": 0.4149286338823991,
+      "std": 0.0
+    },
+    "test_fp_rate_safe": {
+      "mean": 0.5190947666195191,
+      "std": 0.0
+    },
+    "latency_ms_per_sample": {
+      "mean": 23.874449307693965,
+      "std": 0.0
+    }
+  },
+  "baseline_encoder": null,
+  "delta_vs_baseline": null,
+  "failure_analysis_file": "layer 2/failure_analysis.txt"
+}

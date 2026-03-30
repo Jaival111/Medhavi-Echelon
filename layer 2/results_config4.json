@@ -1,0 +1,172 @@
+{
+  "assignment_owner": "Deeraj",
+  "assignment_config": {
+    "model": "meta-llama/Llama-Guard-3-1B",
+    "max_length": 256,
+    "batch_size": 1,
+    "effective_batch_size": 64,
+    "epochs": 0.02,
+    "adapter_lr": 0.0001,
+    "head_lr": 2e-05,
+    "seeds": [
+      42
+    ],
+    "lora_alpha": 32,
+    "lora_ranks": [
+      8
+    ],
+    "target_modules": [
+      "q_proj",
+      "v_proj"
+    ],
+    "qlora": true,
+    "gradient_checkpointing": true,
+    "force_cpu": false
+  },
+  "required_submission_fields": {
+    "memory_and_training_profile": "Included per seed as peak_gpu_ram_gb and train_wall_time_minutes",
+    "lora_rank_alpha_and_impact": "Included as lora_rank/lora_alpha and lora_rank_impact table",
+    "comparison_against_best_encoder_baseline": "Use layer 2/eval_config4.py to generate comparison_baseline.json"
+  },
+  "runs": {
+    "rank_8_alpha_32": {
+      "lora_rank": 8,
+      "lora_alpha": 32,
+      "seeds": {
+        "42": {
+          "seed": 42,
+          "lora_rank": 8,
+          "lora_alpha": 32,
+          "target_modules": [
+            "q_proj",
+            "v_proj"
+          ],
+          "best_validation_epoch": 0.023680315737543166,
+          "best_checkpoint_path": "layer 2/checkpoints_config4/rank_8_alpha_32/seed_42/best_adapter",
+          "train_wall_time_seconds": 118.55901384200115,
+          "train_wall_time_minutes": 1.9759835640333525,
+          "peak_gpu_ram_gb": 1.6059017181396484,
+          "trainable_params": 856064,
+          "total_params": 750135296,
+          "checkpoint_size_mb": 19.695112228393555,
+          "latency_ms_per_sample": 74.66553480469429,
+          "val_f1_injection": 0.5869797225186766,
+          "val_f1_macro": 0.6158039108461151,
+          "val_f1_micro": 0.6179664363277394,
+          "val_pr_auc": 0.45282606864309966,
+          "val_fp_rate_safe": 0.5028328611898017,
+          "test_f1_injection": 0.5963003264417845,
+          "test_f1_macro": 0.6308823543841025,
+          "test_f1_micro": 0.6341222879684418,
+          "test_pr_auc": 0.4691400743808256,
+          "test_fp_rate_safe": 0.4780763790664781,
+          "test_tp": 274,
+          "test_tn": 369,
+          "test_fp": 338,
+          "test_fn": 33
+        }
+      },
+      "aggregated": {
+        "test_f1_injection": {
+          "mean": 0.5963003264417845,
+          "std": 0.0
+        },
+        "test_f1_macro": {
+          "mean": 0.6308823543841025,
+          "std": 0.0
+        },
+        "test_f1_micro": {
+          "mean": 0.6341222879684418,
+          "std": 0.0
+        },
+        "test_pr_auc": {
+          "mean": 0.4691400743808256,
+          "std": 0.0
+        },
+        "test_fp_rate_safe": {
+          "mean": 0.4780763790664781,
+          "std": 0.0
+        },
+        "latency_ms_per_sample": {
+          "mean": 74.66553480469429,
+          "std": 0.0
+        },
+        "peak_gpu_ram_gb": {
+          "mean": 1.6059017181396484,
+          "std": 0.0
+        },
+        "train_wall_time_minutes": {
+          "mean": 1.9759835640333525,
+          "std": 0.0
+        },
+        "checkpoint_size_mb": {
+          "mean": 19.695112228393555,
+          "std": 0.0
+        }
+      }
+    }
+  },
+  "selected_best_run": "rank_8_alpha_32",
+  "lora_rank_impact": [
+    {
+      "run": "rank_8_alpha_32",
+      "lora_rank": 8,
+      "lora_alpha": 32,
+      "test_f1_injection_mean": 0.5963003264417845,
+      "test_f1_macro_mean": 0.6308823543841025,
+      "test_f1_micro_mean": 0.6341222879684418,
+      "test_pr_auc_mean": 0.4691400743808256,
+      "test_fp_rate_safe_mean": 0.4780763790664781
+    }
+  ],
+  "evaluation": {
+    "per_run_seed_metrics": {
+      "rank_8_alpha_32": {
+        "42": {
+          "test_f1_injection": 0.564430244941427,
+          "test_f1_macro": 0.5944281619564803,
+          "test_f1_micro": 0.596646942800789,
+          "test_pr_auc": 0.4149286338823991,
+          "test_fp_rate_safe": 0.5190947666195191,
+          "test_tp": 265,
+          "test_tn": 340,
+          "test_fp": 367,
+          "test_fn": 42,
+          "latency_ms_per_sample": 23.874449307693965,
+          "checkpoint_size_mb": 19.695112228393555,
+          "model_params_million": 1236.67456
+        }
+      }
+    },
+    "best_run": "rank_8_alpha_32",
+    "best_seed": "42",
+    "best_seed_metrics": {
+      "test_f1_injection": 0.564430244941427,
+      "test_f1_macro": 0.5944281619564803,
+      "test_f1_micro": 0.596646942800789,
+      "test_pr_auc": 0.4149286338823991,
+      "test_fp_rate_safe": 0.5190947666195191,
+      "test_tp": 265,
+      "test_tn": 340,
+      "test_fp": 367,
+      "test_fn": 42,
+      "latency_ms_per_sample": 23.819070027613268,
+      "checkpoint_size_mb": 19.695112228393555,
+      "model_params_million": 1236.67456
+    },
+    "failure_patterns": {
+      "false_positive": {
+        "other": 13,
+        "multi_step": 4,
+        "role_play": 3
+      },
+      "false_negative": {
+        "role_play": 11,
+        "multi_step": 3,
+        "other": 6
+      }
+    },
+    "comparison_file": "layer 2/comparison_baseline.json",
+    "failure_file": "layer 2/failure_analysis.txt"
+  }
+}
