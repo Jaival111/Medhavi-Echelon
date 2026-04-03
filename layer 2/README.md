@@ -218,3 +218,83 @@ python "layer 2/eval_config4.py" \
 1. `layer 2/results_config4.json`
 2. `layer 2/comparison_baseline.json`
 3. `layer 2/failure_analysis.txt`
+
+## 10) Jaival Config 3 Runbook (implemented)
+
+The repository now includes an end-to-end workflow for Jaival's required Config 3 deliverables.
+
+### Files added for Config 3
+
+1. `layer 2/train_config3_roberta.py`
+2. `layer 2/eval_config3.py`
+3. `layer 2/requirements_config3.txt`
+
+### Step A: Install dependencies
+
+```bash
+pip install -r "layer 2/requirements_config3.txt"
+```
+
+### Step B: Build shared dataset splits (if not already created)
+
+```bash
+python data/download_and_prepare_xtram1.py --output-dir data/processed --seed 42
+```
+
+### Step C1: Train baseline without hard-negative mix
+
+```bash
+python "layer 2/train_config3_roberta.py" \
+  --data-dir data/processed \
+  --model-name roberta-large \
+  --seeds 42,43,44 \
+  --max-length 256 \
+  --learning-rate 1e-5 \
+  --batch-size 4 \
+  --gradient-accumulation-steps 8 \
+  --epochs 5 \
+  --rdrop-alpha 0.5
+```
+
+### Step C2: Train with hard-negative mix (ablation pair)
+
+```bash
+python "layer 2/train_config3_roberta.py" \
+  --data-dir data/processed \
+  --model-name roberta-large \
+  --seeds 42,43,44 \
+  --max-length 256 \
+  --learning-rate 1e-5 \
+  --batch-size 4 \
+  --gradient-accumulation-steps 8 \
+  --epochs 5 \
+  --rdrop-alpha 0.5 \
+  --with-hard-negatives \
+  --hard-negative-ratio 0.30
+```
+
+Both runs are merged into:
+
+1. `layer 2/results_config3.json`
+
+### Step D: Generate required Jaival evaluation report
+
+```bash
+python "layer 2/eval_config3.py" \
+  --results-json "layer 2/results_config3.json" \
+  --data-dir data/processed \
+  --report-json "layer 2/comparison_config3.json" \
+  --threshold 0.5 \
+  --batch-size 32 \
+  --max-length 256 \
+  --calibration-bins 10
+```
+
+### Assignment requirement mapping (Jaival)
+
+1. Robustness comparison with and without hard-negative mix:
+  - `hard_negative_ablation_delta` in `comparison_config3.json`
+2. OOD-style evaluation on obfuscated prompts:
+  - `ood_obfuscated_metrics` and `ood_obfuscated_subset_size` per mode
+3. Calibration check:
+  - `calibration.ece` and per-bucket entries under `calibration.bins`
