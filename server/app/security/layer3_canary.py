@@ -17,7 +17,7 @@ class CanaryTokenTester:
     def __init__(
         self,
         groq_api_key: str,
-        model: str = "meta-llama/llama-guard-4-12b",
+        model: str = "llama-3.1-8b-instant",
         temperature: float = 0.0,
         max_tokens: int = 200
     ):
@@ -88,21 +88,18 @@ class CanaryTokenTester:
             # Extract response content
             response_text = response.choices[0].message.content
 
-            lines = response_text.splitlines()
-
-            comment = lines[0]
-
-            if comment == "unsafe":
-                reason = lines[1] if len(lines) > 1 else "Canary token leaked"
+            # Check if the generated response leaked the canary token
+            if canary_token in response_text:
                 score = 100.0
+                passed = False
             else:
-                reason = ""
                 score = 0.0
+                passed = True
             
             return LayerResult(
                 score=score,
                 normalized_score=score,
-                passed=comment != "unsafe",
+                passed=passed,
                 details={
                     "canary_token": canary_token[:8] + "...",  # Show partial for debugging
                     "response_length": len(response_text),
