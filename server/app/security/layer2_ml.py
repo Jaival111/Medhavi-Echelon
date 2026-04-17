@@ -21,9 +21,12 @@ except ImportError:  # fallback if tqdm isn't installed
         return iterable if iterable is not None else []
 
 
-MODEL_NAME = os.getenv("LAYER2_MODEL_NAME", "TheDeepDas/prompt-injection-deberta")
-BATCH_SIZE = 16
-MAX_LENGTH = 512
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+DEFAULT_MODEL_PATH = os.path.join(BASE_DIR, "layer 2", "checkpoints_config3", "with_hard_negatives", "seed_42", "best_checkpoint")
+
+MODEL_NAME = os.getenv("LAYER2_MODEL_NAME", DEFAULT_MODEL_PATH)
+BATCH_SIZE = 32
+MAX_LENGTH = 256
 
 csv.field_size_limit(min(sys.maxsize, 2147483647))
 
@@ -66,6 +69,10 @@ class MLClassifier:
         self._tokenizer = None
         self._model = None
         self._device = None
+        
+        # Preload configuration for avoiding cold-start timeouts
+        if os.getenv("LAYER2_PRELOAD", "true").lower() == "true":
+            self._load_model_and_tokenizer()
     
     def _load_model_and_tokenizer(self):
         """Load model and tokenizer (lazy initialization)"""
@@ -131,9 +138,10 @@ class MLClassifier:
         Returns:
             LayerResult with risk score (0.0 to 1.0)
         """
+        import asyncio
         try:
-            # Predict for single text
-            scores, labels = self._predict_scores([prompt])
+            # Predict for single text in a separate thread to avoid blocking the event loop
+            scores, labels = await asyncio.to_thread(self._predict_scores, [prompt])
             
             score = scores[0]
             label = labels[0]

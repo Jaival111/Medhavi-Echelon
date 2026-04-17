@@ -84,10 +84,10 @@ async def stream_chat_response(
     except Exception as e:
         yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
-@router.post("/", response_model=ChatResponse)
+@router.post("", response_model=ChatResponse)
 async def converse(
     request: ChatRequest,
-    # user: User = Depends(current_active_user),
+    user: User = Depends(current_active_user),
     db: AsyncSession = Depends(get_async_session)
 ):
     """
@@ -106,7 +106,7 @@ async def converse(
         
         chat = await chat_crud.create_chat(
             db=db,
-            user_id=uuid.UUID("78d8dd0e-d404-4f82-97fb-f3b3cb82b61e"),
+            user_id=user.id,
             name=chat_name
         )
         
@@ -121,18 +121,30 @@ async def converse(
                 session_id=str(chat.id)
             )
             
-            # If prompt is unsafe, reject immediately and delete the chat
+            # If prompt is unsafe, reject by returning a blocked message on the UI
             if not security_result.safe:
-                await chat_crud.delete_chat(db, chat.id, uuid.UUID("78d8dd0e-d404-4f82-97fb-f3b3cb82b61e"))
-                raise HTTPException(
-                    status_code=400,
-                    detail={
-                        "error": "Prompt rejected by security system",
-                        "reason": security_result.reason,
-                        "security_score": security_result.score,
-                        "breakdown": security_result.breakdown,
-                    }
+                security_info = (
+                    f"🚫 **Prompt Blocked by Security System** (Threat Score: {security_result.score:.1f}/100)\n"
+                    f"* Reason: {security_result.reason}\n\n"
+                    f"* Layer 0 (Control Plane): {security_result.breakdown.get('layer0_intent', 0):.1f}\n"
+                    f"* Layer 1 (Heuristics):    {security_result.breakdown.get('layer1_heuristic', 0):.1f}\n"
+                    f"* Layer 2 (ML Model):      {security_result.breakdown.get('layer2_ml', 0):.1f}\n"
+                    f"* Layer 3 (Canary Test):   {security_result.breakdown.get('layer3_canary', 0):.1f}\n"
                 )
+                
+                messages_to_store = [
+                    (msg.role, msg.content) for msg in request.messages
+                ]
+                messages_to_store.append(("assistant", security_info))
+                
+                await chat_crud.add_messages_to_chat(
+                    db=db,
+                    chat_id=chat.id,
+                    messages=messages_to_store
+                )
+                
+                chat_with_messages = await chat_crud.get_chat_by_id(db, chat.id, user.id)
+                return ChatResponse.model_validate(chat_with_messages)
         
         # Convert messages to dict format for Groq API
         messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
@@ -151,6 +163,18 @@ async def converse(
             
             assistant_message = completion.choices[0].message
             
+            # Format and prepend security breakdown to the assistant's message content
+            if security_pipeline and security_result:
+                security_info = (
+                    f"🛡️ **Security Check Passed** (Threat Score: {security_result.score:.1f}/100)\n"
+                    f"* Layer 0 (Control Plane): {security_result.breakdown.get('layer0_intent', 0):.1f}\n"
+                    f"* Layer 1 (Heuristics):    {security_result.breakdown.get('layer1_heuristic', 0):.1f}\n"
+                    f"* Layer 2 (ML Model):      {security_result.breakdown.get('layer2_ml', 0):.1f}\n"
+                    f"* Layer 3 (Canary Test):   {security_result.breakdown.get('layer3_canary', 0):.1f}\n"
+                    f"---\n\n"
+                )
+                assistant_message.content = security_info + str(assistant_message.content)
+            
             # Store all messages in database
             messages_to_store = [
                 (msg["role"], msg["content"]) for msg in messages
@@ -165,7 +189,7 @@ async def converse(
             )
             
             # Fetch the complete chat with messages
-            chat_with_messages = await chat_crud.get_chat_by_id(db, chat.id, uuid.UUID("78d8dd0e-d404-4f82-97fb-f3b3cb82b61e"))
+            chat_with_messages = await chat_crud.get_chat_by_id(db, chat.id, user.id)
             
             return ChatResponse.model_validate(chat_with_messages)
     
@@ -212,17 +236,29 @@ async def add_message(
                 session_id=chat_id
             )
             
-            # If prompt is unsafe, reject immediately
+            # If prompt is unsafe, reject by returning a blocked message on the UI
             if not security_result.safe:
-                raise HTTPException(
-                    status_code=400,
-                    detail={
-                        "error": "Prompt rejected by security system",
-                        "reason": security_result.reason,
-                        "security_score": security_result.score,
-                        "breakdown": security_result.breakdown,
-                    }
+                security_info = (
+                    f"🚫 **Prompt Blocked by Security System** (Threat Score: {security_result.score:.1f}/100)\n"
+                    f"* Reason: {security_result.reason}\n\n"
+                    f"* Layer 0 (Control Plane): {security_result.breakdown.get('layer0_intent', 0):.1f}\n"
+                    f"* Layer 1 (Heuristics):    {security_result.breakdown.get('layer1_heuristic', 0):.1f}\n"
+                    f"* Layer 2 (ML Model):      {security_result.breakdown.get('layer2_ml', 0):.1f}\n"
+                    f"* Layer 3 (Canary Test):   {security_result.breakdown.get('layer3_canary', 0):.1f}\n"
                 )
+                
+                # Only store the incredibly newest user message and the rejection block
+                last_user_msg = request.messages[-1]
+                messages_to_store = [(last_user_msg.role, last_user_msg.content), ("assistant", security_info)]
+                
+                await chat_crud.add_messages_to_chat(
+                    db=db,
+                    chat_id=chat.id,
+                    messages=messages_to_store
+                )
+                
+                chat_with_messages = await chat_crud.get_chat_by_id(db, chat.id, user.id)
+                return ChatResponse.model_validate(chat_with_messages)
         
         # Convert messages to dict format for Groq API
         messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
@@ -241,12 +277,24 @@ async def add_message(
             
             assistant_message = completion.choices[0].message
             
-            # Store all messages in database
+            # Format and prepend security breakdown to the assistant's message content
+            if security_pipeline and security_result:
+                security_info = (
+                    f"🛡️ **Security Check Passed** (Threat Score: {security_result.score:.1f}/100)\n"
+                    f"* Layer 0 (Control Plane): {security_result.breakdown.get('layer0_intent', 0):.1f}\n"
+                    f"* Layer 1 (Heuristics):    {security_result.breakdown.get('layer1_heuristic', 0):.1f}\n"
+                    f"* Layer 2 (ML Model):      {security_result.breakdown.get('layer2_ml', 0):.1f}\n"
+                    f"* Layer 3 (Canary Test):   {security_result.breakdown.get('layer3_canary', 0):.1f}\n"
+                    f"---\n\n"
+                )
+                assistant_message.content = security_info + str(assistant_message.content)
+            
+            # Only store the newest user chunk and the assistant response natively to prevent database duplication
+            last_user_msg = request.messages[-1]
             messages_to_store = [
-                (msg["role"], msg["content"]) for msg in messages
+                (last_user_msg.role, last_user_msg.content),
+                (assistant_message.role, assistant_message.content)
             ]
-            # Add assistant response
-            messages_to_store.append((assistant_message.role, assistant_message.content))
             
             await chat_crud.add_messages_to_chat(
                 db=db,
